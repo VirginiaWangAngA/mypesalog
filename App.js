@@ -1,101 +1,60 @@
-cat << 'EOF'
-// App.js — PesaLog v1.0
-// Vee's personal M-Pesa SMS expense tracker
-
-import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
-import LogScreen from './screens/LogScreen';
-import DashboardScreen from './screens/DashboardScreen';
-
-const Tab = createBottomTabNavigator();
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import LogScreen from "./screens/LogScreen";
+import DashboardScreen from "./screens/DashboardScreen";
 
 export default function App() {
+  const [tab, setTab] = useState("log");
+
   return (
-    <NavigationContainer>
+    <View style={styles.container}>
       <StatusBar style="light" />
-      <Tab.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: '#085041' },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: '500' },
-          tabBarActiveTintColor: '#085041',
-          tabBarInactiveTintColor: '#999',
-          tabBarStyle: { borderTopColor: '#eee' },
-        }}
-      >
-        <Tab.Screen
-          name="Log"
-          component={LogScreen}
-          options={{
-            title: 'PesaLog',
-            tabBarLabel: 'Log',
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📋</Text>,
-          }}
-        />
-        <Tab.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={{
-            title: 'Dashboard',
-            tabBarLabel: 'Dashboard',
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📊</Text>,
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>PesaLog</Text>
+      </View>
+
+      {/* Screen */}
+      <View style={styles.screen}>
+        {tab === "log" ? <LogScreen /> : <DashboardScreen />}
+      </View>
+
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab("log")}>
+          <Text style={tab === "log" ? styles.tabActive : styles.tabInactive}>
+            📋 Log
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab("dash")}>
+          <Text style={tab === "dash" ? styles.tabActive : styles.tabInactive}>
+            📊 Dashboard
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
-EOF
-echo "App.js content ready"
-Output
 
-// App.js — PesaLog v1.0
-// Vee's personal M-Pesa SMS expense tracker
-
-import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
-import LogScreen from './screens/LogScreen';
-import DashboardScreen from './screens/DashboardScreen';
-
-const Tab = createBottomTabNavigator();
-
-export default function App() {
-  return (
-    <NavigationContainer>
-      <StatusBar style="light" />
-      <Tab.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: '#085041' },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: '500' },
-          tabBarActiveTintColor: '#085041',
-          tabBarInactiveTintColor: '#999',
-          tabBarStyle: { borderTopColor: '#eee' },
-        }}
-      >
-        <Tab.Screen
-          name="Log"
-          component={LogScreen}
-          options={{
-            title: 'PesaLog',
-            tabBarLabel: 'Log',
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📋</Text>,
-          }}
-        />
-        <Tab.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={{
-            title: 'Dashboard',
-            tabBarLabel: 'Dashboard',
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📊</Text>,
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
-  );
-}
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: {
+    backgroundColor: "#085041",
+    paddingTop: 50,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
+  },
+  headerText: { color: "#fff", fontSize: 18, fontWeight: "500" },
+  screen: { flex: 1 },
+  tabBar: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    backgroundColor: "#fff",
+  },
+  tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
+  tabActive: { color: "#085041", fontWeight: "600", fontSize: 14 },
+  tabInactive: { color: "#999", fontSize: 14 },
+});
