@@ -4,6 +4,9 @@ import {
   ScrollView, StyleSheet, Modal, Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseMpesaSMS, isMpesaSMS } from '../services/SmsListener';
+import * as Notifications from 'expo-notifications';
+import { AppState } from 'react-native';
 
 const CATS = [
   { id: 'food', label: 'Food', icon: '🍽️' },
@@ -109,6 +112,40 @@ export default function LogScreen() {
     setShowOverlay(false);
     setStep(1);
   }
+
+  // Listen for new SMS via notifications when app is in foreground
+useEffect(() => {
+  // Request notification permissions (used to alert user of new M-Pesa SMS)
+  Notifications.requestPermissionsAsync();
+
+  // Set notification handler
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+
+  // Listen for notification tap — auto-fills SMS and opens overlay
+  const sub = Notifications.addNotificationResponseReceivedListener(response => {
+    const smsBody = response.notification.request.content.data?.smsBody;
+    if (smsBody && isMpesaSMS('MPESA', smsBody)) {
+      const result = parseMpesaSMS(smsBody);
+      if (result) {
+        setParsed(result);
+        setPickedCat(null);
+        setPlanned(null);
+        setNote('');
+        setStep(1);
+        setSaved(false);
+        setShowOverlay(true);
+      }
+    }
+  });
+
+  return () => sub.remove();
+}, []);
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
