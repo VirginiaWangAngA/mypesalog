@@ -1,14 +1,23 @@
-import SmsListener from 'react-native-android-sms-listener';
+import { DeviceEventEmitter, NativeModules, Platform } from 'react-native';
 import { parseMpesaSMS, isMpesaSMS } from './SmsListener';
 
 export function startSmsListener(onMpesaReceived) {
-  const subscription = SmsListener.addListener(message => {
-    if (isMpesaSMS(message.originatingAddress, message.body)) {
-      const parsed = parseMpesaSMS(message.body);
-      if (parsed) {
-        onMpesaReceived(parsed);
+  if (Platform.OS !== 'android') return { remove: () => {} };
+
+  const subscription = DeviceEventEmitter.addListener(
+    'onSMSReceived',
+    (message) => {
+      try {
+        const { originatingAddress, messageBody } = message;
+        if (isMpesaSMS(originatingAddress, messageBody)) {
+          const parsed = parseMpesaSMS(messageBody);
+          if (parsed) onMpesaReceived(parsed);
+        }
+      } catch (e) {
+        console.log('SMS parse error', e);
       }
     }
-  });
+  );
+
   return subscription;
 }

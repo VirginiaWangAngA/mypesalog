@@ -24,13 +24,8 @@
       ]
     },
     "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#085041"
-        }
-      ]
-    ]
+  "./android-sms/withSmsReceiver"
+]
+  
   }
 }
