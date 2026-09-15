@@ -7,14 +7,15 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#085041"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#085041"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.pesalog.app",
       "permissions": [
@@ -23,9 +24,10 @@
         "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
-    "plugins": [
-  "./android-sms/withSmsReceiver"
-]
-  
+    "extra": {
+      "eas": {
+        "projectId": "aed26985-c337-4dc8-8140-553a8e4e9960"
+      }
+    }
   }
 }

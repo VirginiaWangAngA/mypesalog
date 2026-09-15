@@ -4,7 +4,7 @@ import {
   ScrollView, StyleSheet, Modal, Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { startSmsListener } from '../services/SmsReceiver';
+
 
 const CATS = [
   { id: 'food', label: 'Food', icon: '🍽️' },
@@ -28,18 +28,7 @@ function parseMpesa(sms) {
   if (!amtMatch) return null;
 
 
-  useEffect(() => {
-  const subscription = startSmsListener((parsed) => {
-    setParsed(parsed);
-    setPickedCat(null);
-    setPlanned(null);
-    setNote('');
-    setStep(1);
-    setSaved(false);
-    setShowOverlay(true);
-  });
-  return () => subscription.remove();
-}, []);
+ 
 
   return {
     amount: amtMatch[1],
