@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, StyleSheet, Modal, Alert,
-  DeviceEventEmitter
+  DeviceEventEmitter, Platform, PermissionsAndroid
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseMpesaSMS } from '../services/SmsListener';
@@ -48,6 +48,19 @@ export default function LogScreen() {
     );
     return () => subscription.remove();
   }, []);
+
+
+  // Request SMS permission at runtime
+useEffect(() => {
+  if (Platform.OS === 'android') {
+    PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+    ]).then(result => {
+      console.log('SMS permissions:', result);
+    });
+  }
+}, []);
 
   function handleParse() {
     const result = parseMpesaSMS(sms);
