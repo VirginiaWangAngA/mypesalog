@@ -1,12 +1,11 @@
-import { DeviceEventEmitter } from 'react-native';
-import { parseMpesaSMS } from '../services/SmsListener';
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ScrollView, StyleSheet, Modal, Alert
+  ScrollView, StyleSheet, Modal, Alert,
+  DeviceEventEmitter
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { parseMpesaSMS } from '../services/SmsListener';
 
 const CATS = [
   { id: 'food', label: 'Food', icon: '🍽️' },
@@ -20,56 +19,38 @@ const CATS = [
   { id: 'other', label: 'Other', icon: '📦' },
 ];
 
-function parseMpesa(sms) {
-  const amtMatch = sms.match(/Ksh\s?([\d,]+(?:\.\d{1,2})?)/i);
-  const toMatch = sms.match(/(?:sent to|paid to|received from)\s+([A-Z0-9 &'\-]+?)(?:\s+\d{10,}|\s+on\s)/i);
-  const refMatch = sms.match(/^([A-Z0-9]{10})/);
-  const dateMatch = sms.match(/on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*[AP]M)/i);
-  const balMatch = sms.match(/balance is Ksh\s?([\d,]+(?:\.\d{1,2})?)/i);
-
-  if (!amtMatch) return null;
-
-useEffect(() => {
-  const subscription = DeviceEventEmitter.addListener(
-    'onMpesaSmsReceived',
-    (body) => {
-      const result = parseMpesaSMS(body);
-      if (result) {
-        setParsed(result);
-        setPickedCat(null);
-        setPlanned(null);
-        setNote('');
-        setStep(1);
-        setSaved(false);
-        setShowOverlay(true);
-      }
-    }
-  );
-  return () => subscription.remove();
-}, []);
- 
-
-  return {
-    amount: amtMatch[1],
-    to: toMatch ? toMatch[1].trim() : 'Unknown recipient',
-    ref: refMatch ? refMatch[1] : '—',
-    date: dateMatch ? dateMatch[1] + ' ' + dateMatch[2] : new Date().toLocaleDateString('en-KE'),
-    balance: balMatch ? balMatch[1] : null,
-  };
-}
-
 export default function LogScreen() {
   const [sms, setSms] = useState('');
   const [parsed, setParsed] = useState(null);
   const [pickedCat, setPickedCat] = useState(null);
-  const [planned, setPlanned] = useState(null); // null | 'planned' | 'unplanned'
+  const [planned, setPlanned] = useState(null);
   const [note, setNote] = useState('');
-  const [step, setStep] = useState(1); // 1 = category, 2 = planned/unplanned, 3 = note
+  const [step, setStep] = useState(1);
   const [showOverlay, setShowOverlay] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Auto SMS listener — fires when M-Pesa SMS arrives
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      'onMpesaSmsReceived',
+      (body) => {
+        const result = parseMpesaSMS(body);
+        if (result) {
+          setParsed(result);
+          setPickedCat(null);
+          setPlanned(null);
+          setNote('');
+          setStep(1);
+          setSaved(false);
+          setShowOverlay(true);
+        }
+      }
+    );
+    return () => subscription.remove();
+  }, []);
+
   function handleParse() {
-    const result = parseMpesa(sms);
+    const result = parseMpesaSMS(sms);
     if (!result) {
       Alert.alert('Could not read SMS', 'Paste a standard M-Pesa confirmation message and try again.');
       return;
@@ -133,51 +114,15 @@ export default function LogScreen() {
     setStep(1);
   }
 
-  // Listen for new SMS via notifications when app is in foreground
-useEffect(() => {
-  // Request notification permissions (used to alert user of new M-Pesa SMS)
-  Notifications.requestPermissionsAsync();
-
-  // Set notification handler
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
-  });
-
-  // Listen for notification tap — auto-fills SMS and opens overlay
-  const sub = Notifications.addNotificationResponseReceivedListener(response => {
-    const smsBody = response.notification.request.content.data?.smsBody;
-    if (smsBody && isMpesaSMS('MPESA', smsBody)) {
-      const result = parseMpesaSMS(smsBody);
-      if (result) {
-        setParsed(result);
-        setPickedCat(null);
-        setPlanned(null);
-        setNote('');
-        setStep(1);
-        setSaved(false);
-        setShowOverlay(true);
-      }
-    }
-  });
-
-  return () => sub.remove();
-}, []);
-
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
 
-      {/* Success banner */}
       {saved && (
         <View style={styles.successBanner}>
           <Text style={styles.successText}>✅ Transaction saved to dashboard</Text>
         </View>
       )}
 
-      {/* SMS Input */}
       <View style={styles.card}>
         <Text style={styles.cardLabel}>Paste your M-Pesa SMS</Text>
         <TextInput
@@ -194,28 +139,24 @@ useEffect(() => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.tip}>💡 Soon this will pop up automatically when M-Pesa SMS arrives</Text>
+      <Text style={styles.tip}>💡 SMS overlay will pop up automatically when M-Pesa message arrives</Text>
 
-      {/* Overlay Modal */}
       <Modal visible={showOverlay} animationType="slide" transparent>
         <View style={styles.modalBg}>
           <View style={styles.sheet}>
 
-            {/* Transaction summary — always visible */}
             <View style={styles.txSummary}>
               <Text style={styles.txAmt}>KES {parsed?.amount}</Text>
               <Text style={styles.txTo}>→ {parsed?.to}</Text>
               <Text style={styles.txDate}>{parsed?.date}</Text>
             </View>
 
-            {/* Step indicator */}
             <View style={styles.stepRow}>
-              {[1,2,3].map(n => (
+              {[1, 2, 3].map(n => (
                 <View key={n} style={[styles.stepDot, step === n && styles.stepDotActive]} />
               ))}
             </View>
 
-            {/* STEP 1 — Category */}
             {step === 1 && (
               <>
                 <Text style={styles.sheetTitle}>Hey Vee 👋</Text>
@@ -240,11 +181,10 @@ useEffect(() => {
               </>
             )}
 
-            {/* STEP 2 — Planned or Unplanned */}
             {step === 2 && (
               <>
                 <Text style={styles.sheetTitle}>Was this planned? 🤔</Text>
-                <Text style={styles.sheetSub}>Did you budget for this spend or was it spontaneous?</Text>
+                <Text style={styles.sheetSub}>Did you budget for this or was it spontaneous?</Text>
                 <View style={styles.plannedRow}>
                   <TouchableOpacity
                     style={[styles.plannedBtn, styles.plannedYes]}
@@ -263,19 +203,16 @@ useEffect(() => {
                     <Text style={styles.plannedSub}>Spontaneous spend</Text>
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.skipBtn} onPress={() => handleNextFromPlanned('unplanned')}>
+                <TouchableOpacity style={styles.skipBtn} onPress={() => setStep(1)}>
                   <Text style={styles.skipBtnText}>← Back</Text>
                 </TouchableOpacity>
               </>
             )}
 
-            {/* STEP 3 — Note + Save */}
             {step === 3 && (
               <>
                 <Text style={styles.sheetTitle}>Any details? ✏️</Text>
                 <Text style={styles.sheetSub}>Optional — add context you'll thank yourself for later.</Text>
-
-                {/* Summary chips */}
                 <View style={styles.chipRow}>
                   <View style={styles.chip}>
                     <Text style={styles.chipText}>
@@ -286,7 +223,6 @@ useEffect(() => {
                     <Text style={styles.chipText}>{planned === 'planned' ? '✅ Planned' : '⚡ Unplanned'}</Text>
                   </View>
                 </View>
-
                 <TextInput
                   style={styles.noteInput}
                   placeholder="e.g. groceries, school shoes, team lunch…"
@@ -303,7 +239,6 @@ useEffect(() => {
               </>
             )}
 
-            {/* Close */}
             <TouchableOpacity onPress={handleClose} style={{ marginTop: 8, alignItems: 'center' }}>
               <Text style={{ color: '#ccc', fontSize: 12 }}>dismiss</Text>
             </TouchableOpacity>
@@ -333,8 +268,6 @@ const styles = StyleSheet.create({
   },
   parseBtnText: { color: '#fff', fontWeight: '500', fontSize: 15 },
   tip: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 4 },
-
-  // Modal
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#fff', borderTopLeftRadius: 20,
@@ -344,16 +277,11 @@ const styles = StyleSheet.create({
   txAmt: { fontSize: 24, fontWeight: '600', color: '#fff' },
   txTo: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   txDate: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
-
-  // Step dots
   stepRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 16 },
   stepDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e0e0e0' },
   stepDotActive: { backgroundColor: '#085041', width: 20 },
-
   sheetTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
   sheetSub: { fontSize: 14, color: '#666', marginBottom: 16 },
-
-  // Categories
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   catBtn: {
     width: '30%', borderWidth: 1, borderColor: '#e0e0e0',
@@ -363,8 +291,6 @@ const styles = StyleSheet.create({
   catIcon: { fontSize: 20, marginBottom: 4 },
   catLabel: { fontSize: 12, color: '#666' },
   catLabelActive: { color: '#085041', fontWeight: '500' },
-
-  // Planned / Unplanned
   plannedRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   plannedBtn: {
     flex: 1, borderRadius: 12, padding: 16,
@@ -375,14 +301,11 @@ const styles = StyleSheet.create({
   plannedIcon: { fontSize: 24, marginBottom: 6 },
   plannedLabel: { fontSize: 14, fontWeight: '600', color: '#333' },
   plannedSub: { fontSize: 11, color: '#888', marginTop: 2, textAlign: 'center' },
-
-  // Chips
   chipRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   chip: { backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   chipGreen: { backgroundColor: '#E1F5EE' },
   chipOrange: { backgroundColor: '#FFF4E5' },
   chipText: { fontSize: 13, color: '#333' },
-
   noteInput: {
     borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8,
     padding: 10, fontSize: 14, color: '#333', marginBottom: 12,
