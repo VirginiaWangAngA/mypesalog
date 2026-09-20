@@ -1,3 +1,5 @@
+import { DeviceEventEmitter } from 'react-native';
+import { parseMpesaSMS } from '../services/SmsListener';
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
@@ -27,7 +29,24 @@ function parseMpesa(sms) {
 
   if (!amtMatch) return null;
 
-
+useEffect(() => {
+  const subscription = DeviceEventEmitter.addListener(
+    'onMpesaSmsReceived',
+    (body) => {
+      const result = parseMpesaSMS(body);
+      if (result) {
+        setParsed(result);
+        setPickedCat(null);
+        setPlanned(null);
+        setNote('');
+        setStep(1);
+        setSaved(false);
+        setShowOverlay(true);
+      }
+    }
+  );
+  return () => subscription.remove();
+}, []);
  
 
   return {
