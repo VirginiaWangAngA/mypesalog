@@ -1,6 +1,6 @@
 import { DeviceEventEmitter } from 'react-native';
 import { parseMpesaSMS } from '../services/SmsListener';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, StyleSheet, Modal, Alert
